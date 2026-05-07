@@ -1,20 +1,3 @@
-# ================================================================
-# ingest.py
-# Medical Knowledge Base Ingestion Pipeline
-# Reads all your PDFs/text files and loads them into ChromaDB
-#
-# Place in: medical_ai_platform/backend/
-#
-# Install:
-#   pip install PyMuPDF chromadb sentence-transformers tqdm
-#
-# Usage:
-#   python ingest.py                   # ingest everything
-#   python ingest.py --clear           # clear DB then ingest
-#   python ingest.py --stats           # just show DB stats
-#   python ingest.py --test            # test a query after ingest
-# ================================================================
-
 import os
 import re
 import sys
