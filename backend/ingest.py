@@ -8,7 +8,7 @@ from pathlib import Path
 import fitz          # PyMuPDF  — pip install PyMuPDF
 from tqdm import tqdm
 
-from rag_system import MedicalRAG
+from .rag_system import MedicalRAG
 
 
 # ================================================================

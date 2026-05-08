@@ -6,15 +6,13 @@ import logging
 
 logger = logging.getLogger(__name__) 
 
-models_dir = os.path.join(os.path.dirname(__file__), 'models')
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+models_dir = os.path.join(BASE_DIR, 'models')
 
 
 
-organ_classes =[
-    "Brain", "Eyes", "Heart", "Kidneys", "Liver", "Lungs",
-    "Pancreas", "Skin", "Spine", "Stomach", "Thyroid",
-    "Intestines", "Bladder", "Bones"
-]
+organ_classes = [f"Class{i}" for i in range(27)]
 
 chest_classes  = [
     "COVID-19", "Normal", "Pneumonia", "Tuberculosis", "Lung Opacity"
@@ -35,8 +33,11 @@ skin_classes   = [
     "Vascular Lesions", "Dermatofibroma"
 ]
 
-bone_classes   = [
-    "Fractured", "Normal"
+bone_classes = [
+    "Class0",
+    "Class1",
+    "Class2",
+    "Class3"
 ]
 
 
@@ -62,25 +63,58 @@ organ_to_disease_model = {
 }
  
 
-def _resnet50(num_classes):
+def _resnet50_v1(num_classes):
     m = models.resnet50(weights=None)
-    m.fc = nn.Linear(m.fc.in_features, num_classes)
+
+    m.fc = nn.Sequential(
+        nn.Dropout(0.3),
+        nn.Linear(m.fc.in_features, 512),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(512, num_classes)
+    )
+
     return m
 
-def _resnet34(num_classes):
-    m = models.resnet34(weights=None)
-    m.fc = nn.Linear(m.fc.in_features, num_classes)
+def _skin_resnet50(num_classes):
+    m = models.resnet50(weights=None)
+
+    m.fc = nn.Sequential(
+        nn.Linear(m.fc.in_features, 512),
+        nn.ReLU(),
+        nn.Dropout(0.3),
+        nn.Linear(512, num_classes)
+    )
+
     return m
 
-def efficientnet_b0(num_classes):
-    m = models.efficientnet_b0(weights=None)
-    m.classifier[1] = nn.Linear(m.classifier[1].in_features, num_classes)
+def _organ_resnet50(num_classes):
+    m = models.resnet50(weights=None)
+
+    m.fc = nn.Sequential(
+        nn.Dropout(0.3),
+        nn.Linear(m.fc.in_features, 512),
+        nn.ReLU(),
+        nn.BatchNorm1d(512),
+        nn.Dropout(0.2),
+        nn.Linear(512, num_classes)
+    )
+
+    return m
+def _bone_resnet50(num_classes):
+    m = models.resnet50(weights=None)
+
+    m.fc = nn.Sequential(
+        nn.Dropout(0.3),
+        nn.Linear(m.fc.in_features, 512),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(512, num_classes)
+    )
+
     return m
 
-def _desenet121(num_classes):
-    m = models.densenet121(weights=None)
-    m.classifier = nn.Linear(m.classifier.in_features, num_classes)
-    return m
+
 
 
 
@@ -134,30 +168,29 @@ class ModelRegistry:
             "knee":   knee_classes,
             "dental": dental_classes,
         }
-
-        def load_models(self):
+     def load_all_models(self):
             """Load all 8 models from models/ directory."""
-            self.organ = _load_model("organ_model_v2.pth", _resnet50, len(organ_classes), self.device)
+            self.organ = _load_model("organ_model_v2.pth", _organ_resnet50, len(organ_classes), self.device)
 
-            self.chest = _load_model("chest_model.pth", _resnet50, len(chest_classes),self.device)
+            self.chest = _load_model("chest_model.pth", _resnet50_v1, len(chest_classes),self.device)
 
-            self.brain = _load_model("brain_model.pth", _resnet50, len(brain_classes),self.device)
+            self.brain = _load_model("brain_model.pth",_resnet50_v1, len(brain_classes),self.device)
 
-            self.skin = _load_model("skin_model.pth", _resnet50, len(skin_classes),self.device)
+            self.skin = _load_model("skin_model.pth", _skin_resnet50, len(skin_classes),self.device)
 
-            self.eye = _load_model("eye_model.pth", _resnet50, len(eye_classes),self.device)
+            self.eye = _load_model("eye_model.pth", _resnet50_v1, len(eye_classes),self.device)
 
-            self.bone = _load_model("bone_model.pth", _resnet50, len(bone_classes),self.device)
+            self.bone = _load_model("bone_model.pth", _bone_resnet50, len(bone_classes),self.device)
 
-            self.knee = _load_model("knee_model.pth", _resnet50, len(knee_classes),self.device)
+            self.knee = _load_model("knee_model.pth", _resnet50_v1, len(knee_classes),self.device)
 
-            self.dental = _load_model("dental_model.pth", _resnet50, len(dental_classes),self.device)
+            self.dental = _load_model("dental_model.pth", _resnet50_v1, len(dental_classes),self.device)
 
 
-            def get(self, name: str):
+     def get(self, name: str):
                 return getattr(self, name, None)
             
-            def status(self) -> dict:
+     def status(self) -> dict:
                 names= {
                     "organ":  self.organ is not None,
                     "chest":  self.chest is not None,
@@ -170,12 +203,14 @@ class ModelRegistry:
                 }
                 return {n: getattr(self, n) is not None for n in names}
 
-            def get_disease_model(self, organ_name: str):
+     def get_disease_model(self, organ_name: str):
                 """Returns (key, model, labels) for an organ's disease model."""
                 key = organ_to_disease_model.get(organ_name)
                 if not key:
                     return None, None, None
                 return key, self.get(key), self.labels.get(key, [])
+
+        
 
 
 registry = ModelRegistry()  
