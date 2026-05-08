@@ -8,7 +8,7 @@ import cv2
 import torch
 import torch.nn as nn
 from PIL import Image
-from image_utils import pil_to_base64   # FIX 1: removed pil_to_based (doesn't exist)
+from image_utils import image_to_base64   # FIX 1: removed pil_to_based (doesn't exist)
 
 
 class GradCAM:
@@ -136,8 +136,8 @@ class GradCAM:
             "predicted_class_idx" : pred_idx,
             "probabilities"       : probs.tolist(),
             "confidence"          : round(float(probs[pred_idx]) * 100, 2),
-            "overlay_base64"      : pil_to_base64(overlay_img),
-            "heatmap_base64"      : pil_to_base64(heatmap_pil),
+            "overlay_base64"      : image_to_base64(overlay_img),
+            "heatmap_base64"      : image_to_base64(heatmap_pil),
         }
 
     def remove_hooks(self):
