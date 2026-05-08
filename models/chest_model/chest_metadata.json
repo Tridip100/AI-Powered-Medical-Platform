@@ -1,0 +1,89 @@
+{
+  "model_name": "ResNet50 Chest Disease Detector",
+  "num_classes": 5,
+  "classes": [
+    "COVID",
+    "Lung_Opacity",
+    "Normal",
+    "Pneumonia",
+    "Tuberculosis"
+  ],
+  "class_to_idx": {
+    "COVID": 0,
+    "Lung_Opacity": 1,
+    "Normal": 2,
+    "Pneumonia": 3,
+    "Tuberculosis": 4
+  },
+  "input_size": [
+    224,
+    224
+  ],
+  "normalize_mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "normalize_std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "best_val_accuracy": 95.07,
+  "scan_type": "Chest X-ray",
+  "disease_info": {
+    "Normal": {
+      "description": "Healthy lungs",
+      "symptoms": [
+        "None"
+      ],
+      "treatment": "None",
+      "risk": "None",
+      "emergency": false
+    },
+    "Pneumonia": {
+      "description": "Lung infection",
+      "symptoms": [
+        "Cough",
+        "Fever",
+        "Breathlessness"
+      ],
+      "treatment": "Antibiotics/antivirals",
+      "risk": "Moderate",
+      "emergency": false
+    },
+    "COVID": {
+      "description": "COVID-19 lung infection",
+      "symptoms": [
+        "Fever",
+        "Dry cough",
+        "Loss of taste"
+      ],
+      "treatment": "Supportive care, antivirals",
+      "risk": "Moderate-Critical",
+      "emergency": false
+    },
+    "Lung_Opacity": {
+      "description": "Cloudy areas in lungs indicating fluid or infection",
+      "symptoms": [
+        "Breathlessness",
+        "Cough",
+        "Fatigue"
+      ],
+      "treatment": "Treat underlying cause",
+      "risk": "Moderate",
+      "emergency": false
+    },
+    "Tuberculosis": {
+      "description": "Bacterial lung infection",
+      "symptoms": [
+        "Persistent cough",
+        "Night sweats",
+        "Weight loss"
+      ],
+      "treatment": "6-month RIPE antibiotics",
+      "risk": "High",
+      "emergency": false
+    }
+  }
+}

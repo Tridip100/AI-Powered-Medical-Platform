@@ -1,0 +1,107 @@
+{
+  "model_name": "ResNet50 Dental Disease Detector",
+  "num_classes": 6,
+  "classes": [
+    "Calculus",
+    "Caries",
+    "Gingivitis",
+    "Hypodontia",
+    "Mouth_Ulcer",
+    "Tooth_Discoloration"
+  ],
+  "class_to_idx": {
+    "Calculus": 0,
+    "Caries": 1,
+    "Gingivitis": 2,
+    "Hypodontia": 3,
+    "Mouth_Ulcer": 4,
+    "Tooth_Discoloration": 5
+  },
+  "input_size": [
+    224,
+    224
+  ],
+  "normalize_mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "normalize_std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "best_val_accuracy": 88.08,
+  "scan_type": "Dental Photo / Intraoral Camera",
+  "disease_info": {
+    "Calculus": {
+      "description": "Hardened dental plaque (tartar) on teeth surface, especially near gumline.",
+      "symptoms": [
+        "Yellow/brown deposits on teeth",
+        "Bad breath",
+        "Gum irritation"
+      ],
+      "treatment": "Professional dental scaling and polishing every 6 months",
+      "risk": "Low-Moderate",
+      "emergency": false
+    },
+    "Caries": {
+      "description": "Tooth decay caused by bacterial acid erosion of tooth enamel.",
+      "symptoms": [
+        "Toothache",
+        "Sensitivity to hot/cold",
+        "Visible holes or pits",
+        "Dark spots"
+      ],
+      "treatment": "Dental filling, crown for large cavities, root canal if pulp involved",
+      "risk": "Moderate",
+      "emergency": false
+    },
+    "Gingivitis": {
+      "description": "Inflammation of the gums, the earliest stage of gum disease.",
+      "symptoms": [
+        "Red swollen gums",
+        "Bleeding when brushing",
+        "Bad breath",
+        "Tender gums"
+      ],
+      "treatment": "Professional cleaning, improved oral hygiene, antibacterial mouthwash",
+      "risk": "Low",
+      "emergency": false
+    },
+    "Mouth_Ulcer": {
+      "description": "Painful sores on the inner lining of the mouth (aphthous ulcers).",
+      "symptoms": [
+        "Painful round/oval sores",
+        "White or yellow center",
+        "Red border",
+        "Difficulty eating"
+      ],
+      "treatment": "Topical corticosteroids, antiseptic mouthwash, vitamin B12 if deficient",
+      "risk": "Low",
+      "emergency": false
+    },
+    "Tooth_Discoloration": {
+      "description": "Changes in tooth color from intrinsic (internal) or extrinsic (surface) causes.",
+      "symptoms": [
+        "Yellow/brown/grey tooth color",
+        "Staining on tooth surface"
+      ],
+      "treatment": "Professional whitening, veneers, or crowns depending on cause",
+      "risk": "Low (cosmetic)",
+      "emergency": false
+    },
+    "Hypodontia": {
+      "description": "Congenital condition with one or more missing permanent teeth.",
+      "symptoms": [
+        "Missing teeth",
+        "Gaps in smile",
+        "Retained baby teeth",
+        "Spacing issues"
+      ],
+      "treatment": "Dental implants, bridges, partial dentures, or orthodontic space closure",
+      "risk": "Low",
+      "emergency": false
+    }
+  }
+}

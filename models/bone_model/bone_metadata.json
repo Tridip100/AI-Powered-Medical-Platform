@@ -1,0 +1,81 @@
+{
+  "model_name": "ResNet50 Bone Disease Detector",
+  "num_classes": 4,
+  "classes": [
+    "Fracture",
+    "Normal_Bone",
+    "Osteoarthritis",
+    "Osteoporosis"
+  ],
+  "class_to_idx": {
+    "Fracture": 0,
+    "Normal_Bone": 1,
+    "Osteoarthritis": 2,
+    "Osteoporosis": 3
+  },
+  "input_size": [
+    224,
+    224
+  ],
+  "normalize_mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "normalize_std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "best_val_accuracy": 93.44,
+  "scan_type": "X-ray",
+  "disease_info": {
+    "Normal_Bone": {
+      "description": "Normal healthy bone structure with no abnormalities detected.",
+      "symptoms": [
+        "No symptoms"
+      ],
+      "treatment": "No treatment required",
+      "risk": "None",
+      "emergency": false
+    },
+    "Fracture": {
+      "description": "A break or crack in a bone caused by trauma, stress, or disease.",
+      "symptoms": [
+        "Severe pain",
+        "Swelling",
+        "Bruising",
+        "Deformity",
+        "Inability to move"
+      ],
+      "treatment": "Immobilization (cast/splint), surgery for complex fractures, physiotherapy",
+      "risk": "Moderate-High",
+      "emergency": true
+    },
+    "Osteoporosis": {
+      "description": "Reduced bone density making bones weak and more prone to fractures.",
+      "symptoms": [
+        "Back pain",
+        "Loss of height",
+        "Stooped posture",
+        "Fragility fractures"
+      ],
+      "treatment": "Calcium+Vitamin D, bisphosphonates (alendronate), lifestyle changes, weight-bearing exercise",
+      "risk": "Moderate",
+      "emergency": false
+    },
+    "Osteoarthritis": {
+      "description": "Degenerative joint disease causing cartilage breakdown and bone changes.",
+      "symptoms": [
+        "Joint pain",
+        "Stiffness",
+        "Swelling",
+        "Reduced range of motion",
+        "Grating sensation"
+      ],
+      "treatment": "Pain management (NSAIDs), physiotherapy, weight loss, joint replacement if severe",
+      "risk": "Moderate",
+      "emergency": false
+    }
+  }
+}
