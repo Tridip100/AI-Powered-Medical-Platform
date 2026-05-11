@@ -8,7 +8,7 @@ import cv2
 import torch
 import torch.nn as nn
 from PIL import Image
-from .image_utils import image_to_base64   # FIX 1: removed pil_to_based (doesn't exist)
+from image_utils import image_to_base64   # FIX 1: removed pil_to_based (doesn't exist)
 
 
 class GradCAM:

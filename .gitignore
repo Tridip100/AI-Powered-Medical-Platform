@@ -4,3 +4,4 @@ chromadb/
 public/3D_models/
 *.glb
 models/
+medai-frontend/.env

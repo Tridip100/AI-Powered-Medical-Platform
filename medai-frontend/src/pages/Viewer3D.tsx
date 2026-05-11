@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+
 const TEXT   = '#d0e4f0';
 const DIM    = 'rgba(180,220,240,0.75)';
 const DIMMER = 'rgba(140,180,210,0.5)';
+const S3_3D_BASE =
+  'https://td-medai-bucket.s3.ap-south-2.amazonaws.com/3d-models';
 
 // ─── All 23 models mapped to your actual filenames ───────────────────────────
 const ORGANS = [
   {
     id: 'heart_four_chambers',
     label: 'Heart (4 Chambers)',
-    file: '/3D_models/heart_four_chambers.glb',
+    file: `${S3_3D_BASE}/heart_four_chambers.glb`,
     color: '#ff4466',
     system: 'Cardiovascular',
     info: 'Four-chamber muscular pump. ~300g. Beats ~70 bpm at rest. Drives ~5L/min cardiac output.',
@@ -17,7 +20,7 @@ const ORGANS = [
   {
     id: 'realistic_human_heart',
     label: 'Heart (Realistic)',
-    file: '/3D_models/realistic_human_heart.glb',
+    file: `${S3_3D_BASE}/realistic_human_heart.glb`,
     color: '#ff2255',
     system: 'Cardiovascular',
     info: 'High-fidelity anatomical model showing external cardiac anatomy, coronary vessels, and major great vessels.',
@@ -25,7 +28,7 @@ const ORGANS = [
   {
     id: 'human_heart_and_lungs',
     label: 'Heart & Lungs (En Bloc)',
-    file: '/3D_models/human_heart_and_lungs_enbloc.glb',
+    file: `${S3_3D_BASE}/human_heart_and_lungs_enbloc.glb`,
     color: '#ff6644',
     system: 'Cardiorespiratory',
     info: 'Heart and lungs as a single en-bloc specimen, showing mediastinal relationships and hilum structures.',
@@ -33,7 +36,7 @@ const ORGANS = [
   {
     id: 'human_heart_cardiac_bypass',
     label: 'Heart (Cardiac Bypass)',
-    file: '/3D_models/human_heart_cardiac_bypass.glb',
+    file: `${S3_3D_BASE}/human_heart_cardiac_bypass.glb`,
     color: '#ff3355',
     system: 'Cardiovascular',
     info: 'Model demonstrating coronary artery bypass graft (CABG) surgery. Shows saphenous vein or arterial graft routing.',
@@ -41,7 +44,7 @@ const ORGANS = [
   {
     id: 'left_lung',
     label: 'Left Lung',
-    file: '/3D_models/left_lung.glb',
+    file: `${S3_3D_BASE}/left_lung.glb`,
     color: '#44aaff',
     system: 'Respiratory',
     info: 'Two-lobed left lung. Cardiac notch accommodates heart. Gas exchange surface ~35m². Tidal volume ~250mL.',
@@ -49,7 +52,7 @@ const ORGANS = [
   {
     id: 'brain_left_hemisphere',
     label: 'Brain — Left Hemisphere',
-    file: '/3D_models/brain_left_hemisphere.glb',
+    file: `${S3_3D_BASE}/brain_left_hemisphere.glb`,
     color: '#ffaa44',
     system: 'Nervous',
     info: 'Left cerebral hemisphere. Contains Broca\'s area (speech production) and primary motor cortex controlling right body side.',
@@ -57,7 +60,7 @@ const ORGANS = [
   {
     id: 'brain_right_hemisphere',
     label: 'Brain — Right Hemisphere',
-    file: '/3D_models/brain_right_hemisphere.glb',
+    file: `${S3_3D_BASE}/brain_right_hemisphere.glb`,
     color: '#ffbb55',
     system: 'Nervous',
     info: 'Right cerebral hemisphere. Dominant for spatial reasoning, face recognition, and artistic/musical processing.',
@@ -65,7 +68,7 @@ const ORGANS = [
   {
     id: 'brain_coronal',
     label: 'Brain — Coronal Sections',
-    file: '/3D_models/brain_coronal_cross_sections.glb',
+    file: `${S3_3D_BASE}/brain_coronal_cross_sections.glb`,
     color: '#ffcc66',
     system: 'Nervous',
     info: 'Coronal (frontal) cross-sections revealing internal structures: basal ganglia, thalamus, corpus callosum, and limbic system.',
@@ -73,7 +76,7 @@ const ORGANS = [
   {
     id: 'ventricles_of_the_brain',
     label: 'Brain Ventricles',
-    file: '/3D_models/ventricles_of_the_brain.glb',
+    file: `${S3_3D_BASE}/ventricles_of_the_brain.glb`,
     color: '#cc88ff',
     system: 'Nervous',
     info: 'CSF-filled cavities: lateral ventricles, third ventricle, cerebral aqueduct, and fourth ventricle. Produces ~500mL CSF/day.',
@@ -81,7 +84,7 @@ const ORGANS = [
   {
     id: 'venous_brain_blood',
     label: 'Brain Venous System',
-    file: '/3D_models/venous_brain_blood_model.glb',
+    file: `${S3_3D_BASE}/venous_brain_blood_model.glb`,
     color: '#aa55ee',
     system: 'Nervous',
     info: 'Cerebral venous drainage system including dural venous sinuses, cortical veins, and deep cerebral veins.',
@@ -89,7 +92,7 @@ const ORGANS = [
   {
     id: 'human_brain_visual_pathway',
     label: 'Visual Pathway',
-    file: '/3D_models/human_brain_visual_pathway.glb',
+    file: `${S3_3D_BASE}/human_brain_visual_pathway.glb`,
     color: '#55ddff',
     system: 'Nervous',
     info: 'Optic nerves, chiasm, optic tracts, lateral geniculate nuclei, optic radiations through to primary visual cortex (V1).',
@@ -97,7 +100,7 @@ const ORGANS = [
   {
     id: 'ischemic_stroke',
     label: 'Ischemic Stroke Model',
-    file: '/3D_models/ischemic_stroke_model.glb',
+    file: `${S3_3D_BASE}/ischemic_stroke_model.glb`,
     color: '#ff6622',
     system: 'Nervous',
     info: 'Visualizes ischemic territory following middle cerebral artery (MCA) occlusion. Shows penumbra and infarct core.',
@@ -105,7 +108,7 @@ const ORGANS = [
   {
     id: 'multiple_sclerosis',
     label: 'Multiple Sclerosis',
-    file: '/3D_models/multiple_sclerosis_ventricles.glb',
+    file: `${S3_3D_BASE}/multiple_sclerosis_ventricles.glb`,
     color: '#ee8833',
     system: 'Nervous',
     info: 'Periventricular MS plaques (Dawson\'s fingers) and demyelination patterns visible on ventricular surface anatomy.',
@@ -113,7 +116,7 @@ const ORGANS = [
   {
     id: 'mozg_i_oczy',
     label: 'Brain & Eyes',
-    file: '/3D_models/mozg_i_oczy.glb',
+    file: `${S3_3D_BASE}/mozg_i_oczy.glb`,
     color: '#33ccaa',
     system: 'Nervous',
     info: 'Brain with orbital contents intact, showing optic nerves entering the optic canal and their relationship to the chiasm.',
@@ -121,7 +124,7 @@ const ORGANS = [
   {
     id: 'fragment_mozgu',
     label: 'Brain Fragment',
-    file: '/3D_models/fragment_mozgu.glb',
+    file: `${S3_3D_BASE}/fragment_mozgu.glb`,
     color: '#ffaa77',
     system: 'Nervous',
     info: 'Detailed cerebral tissue fragment showing gyri, sulci, and surface vasculature in high anatomical detail.',
@@ -129,7 +132,7 @@ const ORGANS = [
   {
     id: 'kidney',
     label: 'Kidney',
-    file: '/3D_models/kidney.glb',
+    file: `${S3_3D_BASE}/kidney.glb`,
     color: '#884422',
     system: 'Urinary',
     info: 'Bean-shaped retroperitoneal organ. ~150g. Filters ~180L plasma/day. Regulates pH, electrolytes and fluid balance.',
@@ -137,7 +140,7 @@ const ORGANS = [
   {
     id: 'liver',
     label: 'Liver',
-    file: '/3D_models/liver.glb',
+    file: `${S3_3D_BASE}/liver.glb`,
     color: '#aa5533',
     system: 'Digestive',
     info: 'Largest solid organ ~1.5kg. 8 Couinaud segments. Over 500 metabolic functions including detoxification and bile synthesis.',
@@ -145,7 +148,7 @@ const ORGANS = [
   {
     id: 'realistic_human_stomach',
     label: 'Stomach',
-    file: '/3D_models/realistic_human_stomach.glb',
+    file: `${S3_3D_BASE}/realistic_human_stomach.glb`,
     color: '#cc8844',
     system: 'Digestive',
     info: 'J-shaped muscular organ. Holds ~1L. Produces HCl (pH ~2) for protein digestion and intrinsic factor for B12 absorption.',
@@ -153,7 +156,7 @@ const ORGANS = [
   {
     id: 'larynx',
     label: 'Larynx',
-    file: '/3D_models/larynx.glb',
+    file: `${S3_3D_BASE}/larynx.glb`,
     color: '#99ccbb',
     system: 'Respiratory',
     info: 'Voice box formed by thyroid, cricoid, and arytenoid cartilages. Vocal folds vibrate at 100–300 Hz for phonation.',
@@ -161,7 +164,7 @@ const ORGANS = [
   {
     id: 'muscle',
     label: 'Muscle Tissue',
-    file: '/3D_models/muscle.glb',
+    file: `${S3_3D_BASE}/muscle.glb`,
     color: '#dd4444',
     system: 'Muscular',
     info: 'Skeletal muscle microstructure: fascicles, muscle fibres, myofibrils, and sarcomere organization for force generation.',
@@ -169,7 +172,7 @@ const ORGANS = [
   {
     id: 'rigged_mouth',
     label: 'Mouth & Oral Cavity',
-    file: '/3D_models/rigged_mouth.glb',
+    file: `${S3_3D_BASE}/rigged_mouth.glb`,
     color: '#ff8866',
     system: 'Digestive',
     info: 'Oral cavity with tongue, teeth, and soft palate. Articulated rig shows jaw mechanics and tongue movement range.',
@@ -177,7 +180,7 @@ const ORGANS = [
   {
     id: 'uterus',
     label: 'Uterus',
-    file: '/3D_models/uterus.glb',
+    file: `${S3_3D_BASE}/uterus.glb`,
     color: '#ff7799',
     system: 'Reproductive',
     info: 'Pear-shaped muscular organ. ~60g (non-pregnant). Fundus, body, isthmus, cervix. Endometrium cycles monthly under hormonal control.',
@@ -185,7 +188,7 @@ const ORGANS = [
   {
     id: 'male_reproductive',
     label: 'Male Reproductive System',
-    file: '/3D_models/male_reproductive_system.glb',
+    file:  `${S3_3D_BASE}/male_reproductive_system.glb`,
     color: '#5599cc',
     system: 'Reproductive',
     info: 'Testes, epididymis, vas deferens, seminal vesicles, prostate, and urethra shown in anatomical relationship.',
@@ -373,7 +376,7 @@ const Viewer3D: React.FC = () => {
       undefined,
       (_err: any) => {
         setModelError(
-          `Model not found: ${active.file.split('/').pop()} — make sure it's in medai-frontend/public/3D_models/`
+          `Model not found: ${active.file.split('/').pop()} — make sure it's in medai-frontend/public/3d-models/`
         );
         setModelLoading(false);
 
