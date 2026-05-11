@@ -168,40 +168,37 @@ async def classify_dental(file: UploadFile = File(...)):
 
 #-------Auto pipeline Organ -> Disease-----------------
 
-@app.post("/classify/auto", tags =["Disease Classifier"])
+@app.post("/classify/auto", tags=["Disease Classifier"])
 async def classify_auto(file: UploadFile = File(...)):
-    """
-    Auto-pipeline: detect organ first, then run the matching disease model.
-    Returns both organ and disease predictions.
-    """
     organ_model = require_model("organ")
     data = await file.read()
- 
+
     # Step 1: Organ classification
     organ_tensor = preprocess_bytes(data, "organ")
     organ_result = run_inference(organ_model, organ_tensor, registry.labels["organ"], registry.device)
     organ_name   = organ_result["prediction"]
- 
+
+    logger.info(f"Auto pipeline — organ detected: {organ_name}")
+
     # Step 2: Disease model lookup
-    key, disease_model, disease_labels = registry.get_disease_model_for_organ(organ_name)
- 
-    if disease_model is None:
+    result = registry.get_disease_model(organ_name)
+    if result is None or result[1] is None:
         return {
             "organ": organ_result,
             "disease": None,
             "note": f"No disease model mapped for organ: {organ_name}",
         }
- 
+
+    key, disease_model, disease_labels = result
+
     disease_tensor = preprocess_bytes(data, key)
     disease_result = run_inference(disease_model, disease_tensor, disease_labels, registry.device)
- 
+
     return {
-        "organ": organ_result,
+        "organ":        organ_result,
         "disease_model": key,
-        "disease": disease_result,
+        "disease":      disease_result,
     }
-
-
 #------- Grad Cam Explainability--------------
 
 @app.post("/explain/gradcam", tags=["Explainability"])
@@ -243,17 +240,14 @@ async def explain_gradcam(
 
 #---------- Symptom Checker -----------------------
 
-@app.post("/symptom-check", tags=["Diagonosis"])
-async def symptom_check(payload:dict):
-    """
-    NLP-based symptom checker.
-    Body: { "symptoms": ["fever", "cough", "chest pain"] }
-    """
+@app.post("/symptom-check", tags=["Diagnosis"])
+async def symptom_check(payload: dict):
     symptoms = payload.get("symptoms", [])
     if not symptoms:
         raise HTTPException(status_code=400, detail="No symptoms provided.")
-    result = check_symptoms(symptoms)
-    return result 
+    
+    result = check_symptoms(symptoms, rag_instance=rag)
+    return result
 
 @app.post("/rag/query", tags=["Education"])
 async def rag_query(payload: dict):

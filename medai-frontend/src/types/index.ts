@@ -24,8 +24,8 @@ export interface RAGResponse {
 }
 
 export interface SymptomResult {
-  disease: string;
-  score: number;
-  matched_symptoms: string[];
-  description: string;
+  answer: string;
+  sources: string[];
+  input_symptoms: string[];
+  disclaimer: string;
 }

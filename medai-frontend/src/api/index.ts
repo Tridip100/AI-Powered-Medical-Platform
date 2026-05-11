@@ -49,7 +49,7 @@ export const askTutor = async (question: string): Promise<RAGResponse> => {
 };
 
 // ── Symptom Checker ───────────────────────────────────────────
-export const checkSymptoms = async (symptoms: string): Promise<SymptomResult[]> => {
+export const checkSymptoms = async (symptoms: string): Promise<SymptomResult> => {
   const symptomList = symptoms
     .split(/[,;]+/)
     .map(s => s.trim().toLowerCase())

@@ -1,3 +1,6 @@
 .env
 chromadb/
 *.pdf
+public/3D_models/
+*.glb
+models/
