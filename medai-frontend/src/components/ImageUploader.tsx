@@ -29,9 +29,15 @@ const ImageUploader: React.FC<Props> = ({ onFile, accept = 'image/*', label = 'U
     const f = e.dataTransfer.files[0]; if (f) handleFile(f);
   }, [handleFile]);
 
+  const handleClick = () => {
+    // Reset input value so selecting the same file again still fires onChange
+    if (inputRef.current) inputRef.current.value = '';
+    inputRef.current?.click();
+  };
+
   return (
     <div
-      onClick={() => inputRef.current?.click()}
+      onClick={handleClick}
       onDragOver={e => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
@@ -44,8 +50,13 @@ const ImageUploader: React.FC<Props> = ({ onFile, accept = 'image/*', label = 'U
         boxShadow: dragging ? '0 0 30px rgba(0,229,255,0.1), inset 0 0 30px rgba(0,229,255,0.03)' : 'none',
       }}
     >
-      <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
 
       {preview ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

@@ -1,678 +1,271 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { wikiSearch, wikiSummary } from '../api';
+import React, { useState } from 'react';
+import { askTutor } from '../api';
 
 const TEXT = '#d0e4f0';
 const DIM = 'rgba(180,220,240,0.75)';
 const DIMMER = 'rgba(140,180,210,0.5)';
 const ACCENT = '#00e5ff';
 
-const PRESETS = [
-  { name: 'Heart', system: 'Cardiovascular' },
-  { name: 'Brain', system: 'Nervous' },
-  { name: 'Lungs', system: 'Respiratory' },
-  { name: 'Liver', system: 'Digestive' },
-  { name: 'Kidneys', system: 'Urinary' },
-  { name: 'Diabetes', system: 'Endocrine Disease' },
-  { name: 'Cancer', system: 'Oncology' },
-  { name: 'Retina', system: 'Visual' },
-  { name: 'Skin', system: 'Dermatology' },
-  { name: 'Thyroid', system: 'Endocrine' },
-  { name: 'Pneumonia', system: 'Respiratory Disease' },
-  { name: 'Hypertension', system: 'Cardiology' },
+const PRESET_CATEGORIES = [
+  {
+    label: 'Organs',
+    items: ['Heart', 'Brain', 'Lungs', 'Liver', 'Kidney', 'Pancreas', 'Thyroid gland', 'Spleen', 'Stomach', 'Intestine'],
+  },
+  {
+    label: 'Diseases',
+    items: ['Pneumonia', 'Glioblastoma', 'Diabetes mellitus', 'Hypertension', 'Melanoma', 'Glaucoma', 'Osteoporosis', 'Tuberculosis'],
+  },
+  {
+    label: 'Topics',
+    items: ['Anatomy', 'Radiology', 'Pathology', 'Histology', 'Physiology', 'Neuroscience', 'Cardiology', 'Oncology'],
+  },
 ];
 
-interface WikiPage {
-  title: string;
-  extract: string;
-  thumbnail?: {
-    source: string;
-  };
-  content_urls?: {
-    desktop: {
-      page: string;
-    };
-  };
+const SUGGESTED_QUERIES = [
+  'What is the anatomy of the heart and how does it pump blood?',
+  'Explain the structure and function of the lungs.',
+  'What are the symptoms and causes of glioblastoma?',
+  'How does the kidney filter blood and regulate fluid balance?',
+  'What is diabetic retinopathy and how is it diagnosed?',
+  'Explain the Kellgren-Lawrence grading scale for knee osteoarthritis.',
+  'What are the radiological features of COVID-19 pneumonia?',
+  'How does melanoma differ from benign skin lesions?',
+];
+
+interface Message {
+  role: 'user' | 'ai';
+  content: string;
+  sources?: string[];
 }
 
 const OrganSearch: React.FC = () => {
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [result, setResult] = useState<WikiPage | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [hoveredPreset, setHoveredPreset] = useState<string | null>(null);
+  const [query, setQuery]       = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const [hovered, setHovered]   = useState<string | null>(null);
 
-  const debounce = useRef<NodeJS.Timeout | null>(null);
-
-  const stripHtml = (h: string) => h.replace(/<[^>]+>/g, '');
-
-  const fetchPage = useCallback(async (title: string) => {
-    setLoading(true);
+  const ask = async (q: string) => {
+    const text = q.trim();
+    if (!text || loading) return;
+    setQuery('');
     setError('');
-    setSuggestions([]);
-    setResult(null);
-
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    setLoading(true);
     try {
-      try {
-        const direct = await wikiSummary(title);
-
-        if (
-          direct &&
-          direct.extract &&
-          direct.extract.length > 80 &&
-          ![
-            'tv series',
-            'television',
-            'episode',
-            'movie',
-            'film',
-            "grey's anatomy",
-          ].some((b) =>
-            `${direct.title} ${direct.extract}`
-              .toLowerCase()
-              .includes(b)
-          )
-        ) {
-          setResult(direct);
-          return;
-        }
-      } catch {}
-
-      const hits = await wikiSearch(title);
-
-      if (!hits || hits.length === 0) {
-        setError('No medical article found.');
-        return;
-      }
-
-      let found = false;
-
-      for (const hit of hits.slice(0, 10)) {
-        try {
-          const candidate = await wikiSummary(hit.title);
-
-          if (
-            candidate &&
-            candidate.extract &&
-            candidate.extract.length > 80 &&
-            ![
-              'tv series',
-              'television',
-              'episode',
-              'movie',
-              'film',
-              "grey's anatomy",
-            ].some((b) =>
-              `${candidate.title} ${candidate.extract}`
-                .toLowerCase()
-                .includes(b)
-            )
-          ) {
-            setResult(candidate);
-            found = true;
-            break;
-          }
-        } catch {}
-      }
-
-      if (!found) {
-        setError('No medical article found.');
-      }
+      const res = await askTutor(text);
+      setMessages(prev => [...prev, { role: 'ai', content: res.answer, sources: res.sources }]);
     } catch {
-      setError('Could not load article.');
+      setError('Could not reach the backend. Ensure FastAPI is running on port 8000.');
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const onQueryChange = (val: string) => {
-    setQuery(val);
-
-    if (debounce.current) {
-      clearTimeout(debounce.current);
-    }
-
-    if (val.trim().length < 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    debounce.current = setTimeout(async () => {
-      try {
-        const results = await wikiSearch(val);
-
-        const filtered = results.filter((s: any) => {
-          const text =
-            `${s.title} ${stripHtml(s.snippet)}`.toLowerCase();
-
-          return ![
-            'tv',
-            'episode',
-            'season',
-            'actor',
-            'movie',
-            'film',
-            "grey's anatomy",
-          ].some((b) => text.includes(b));
-        });
-
-        setSuggestions(filtered.slice(0, 8));
-      } catch {
-        setSuggestions([]);
-      }
-    }, 300);
+  const handlePreset = (name: string) => {
+    ask(`Explain ${name} — its anatomy, function, and associated medical conditions.`);
   };
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: 1100,
-        margin: '0 auto',
-        padding: '3rem 2.5rem',
-      }}
-    >
+    <div style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '3rem 2.5rem' }}>
+
       {/* HEADER */}
       <div className="fade-in" style={{ marginBottom: '2.5rem' }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            marginBottom: 16,
-            background: 'rgba(0,229,255,0.05)',
-            border: '1px solid rgba(0,229,255,0.15)',
-            borderRadius: 100,
-            padding: '6px 16px',
-          }}
-        >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: ACCENT,
-              display: 'inline-block',
-            }}
-          />
-
-          <span
-            style={{
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: 11,
-              color: ACCENT,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Wikipedia API · Medical Search
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16,
+          background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.15)',
+          borderRadius: 100, padding: '6px 16px' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT, display: 'inline-block' }} />
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: ACCENT, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
+            Mistral LLM + ChromaDB RAG
           </span>
         </div>
-
-        <h1
-          style={{
-            fontFamily: 'Outfit, sans-serif',
-            fontSize: 'clamp(2rem, 4vw, 2.8rem)',
-            fontWeight: 900,
-            letterSpacing: -2,
-            color: TEXT,
-            marginBottom: 10,
-            lineHeight: 1,
-          }}
-        >
-          Medical Search
+        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(2rem, 4vw, 2.8rem)', fontWeight: 900, letterSpacing: -2, color: TEXT, marginBottom: 10, lineHeight: 1 }}>
+          Medical Knowledge Base
         </h1>
-
-        <p
-          style={{
-            color: DIM,
-            fontSize: 16,
-            maxWidth: 560,
-          }}
-        >
-          Search organs, diseases, anatomy, physiology, pathology,
-          treatments, and medical conditions with automatic filtering
-          of unrelated entertainment results.
+        <p style={{ color: DIM, fontSize: 16, maxWidth: 580 }}>
+          Ask anything about anatomy, physiology, diseases, radiology, pathology, or treatments.
+          Powered by your ChromaDB knowledge base and Mistral LLM.
         </p>
       </div>
 
-      {/* SEARCH */}
-      <div style={{ position: 'relative', marginBottom: 28 }}>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24 }}>
 
-            if (query.trim()) {
-              fetchPage(query.trim());
-            }
-          }}
-        >
-          <div style={{ position: 'relative' }}>
-            <input
-              className="input-med"
-              style={{
-                paddingLeft: 24,
-                paddingRight: 130,
-                height: 56,
-                fontSize: 15,
-                color: TEXT,
-              }}
-              placeholder="Search medical topics..."
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-            />
+        {/* LEFT — chat */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            <button
-              type="submit"
-              className="btn-cyan"
-              disabled={loading}
-              style={{
-                position: 'absolute',
-                right: 8,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                padding: '8px 22px',
-                fontSize: 12,
-              }}
-            >
-              {loading ? '...' : 'Search'}
-            </button>
-          </div>
-        </form>
+          {/* Messages */}
+          {messages.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {messages.map((m, i) => (
+                <div key={i}>
+                  {m.role === 'user' ? (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <div style={{ maxWidth: '80%', padding: '14px 18px',
+                        borderRadius: '14px 14px 4px 14px',
+                        background: 'linear-gradient(135deg, #00e5ff, #00b8d4)',
+                        color: '#000e1a', fontSize: 15, fontWeight: 500, lineHeight: 1.6,
+                        fontFamily: 'Outfit, sans-serif' }}>
+                        {m.content}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 6,
+                          background: 'rgba(0,229,255,0.1)', border: '1px solid rgba(0,229,255,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" strokeWidth="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                          </svg>
+                        </div>
+                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: DIMMER, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>
+                          MedAI · Mistral RAG
+                        </span>
+                      </div>
+                      <div className="glass" style={{ borderRadius: '4px 14px 14px 14px', padding: '18px 20px' }}>
+                        {/* Render answer with paragraph breaks */}
+                        {m.content.split('\n').filter(Boolean).map((para, pi) => (
+                          <p key={pi} style={{ fontSize: 15, lineHeight: 1.85, color: pi === 0 ? TEXT : DIM,
+                            fontFamily: 'Outfit, sans-serif', marginBottom: pi < m.content.split('\n').filter(Boolean).length - 1 ? 12 : 0 }}>
+                            {para}
+                          </p>
+                        ))}
+                        {m.sources && m.sources.length > 0 && (
+                          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(0,229,255,0.08)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: DIMMER }}>Sources:</span>
+                            {m.sources.map((s, j) => (
+                              <span key={j} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10,
+                                padding: '3px 10px', borderRadius: 4,
+                                background: 'rgba(0,153,255,0.1)', color: '#40b8ff',
+                                border: '1px solid rgba(0,153,255,0.15)' }}>
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
 
-        {suggestions.length > 0 && (
-          <div
-            className="glass"
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: 6,
-              borderRadius: 12,
-              overflow: 'hidden',
-              zIndex: 50,
-            }}
-          >
-            {suggestions.map((s: any) => (
-              <button
-                key={s.pageid}
-                onClick={() => {
-                  setQuery(s.title);
-                  fetchPage(s.title);
-                }}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '14px 20px',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: '1px solid rgba(0,229,255,0.06)',
-                  cursor: 'pointer',
-                  fontFamily: 'Outfit, sans-serif',
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: TEXT,
-                    marginBottom: 3,
-                  }}
-                >
-                  {s.title}
-                </p>
-
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: DIM,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {stripHtml(s.snippet).slice(0, 90)}...
-                </p>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* PRESETS */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 10,
-          marginBottom: 40,
-        }}
-      >
-        {PRESETS.map((o) => (
-          <button
-            key={o.name}
-            onClick={() => {
-              setQuery(o.name);
-              fetchPage(o.name);
-            }}
-            onMouseEnter={() => setHoveredPreset(o.name)}
-            onMouseLeave={() => setHoveredPreset(null)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 20px',
-              borderRadius: 10,
-              background:
-                hoveredPreset === o.name
-                  ? 'rgba(0,229,255,0.04)'
-                  : 'rgba(0,10,22,0.65)',
-              border:
-                hoveredPreset === o.name
-                  ? '1px solid rgba(0,229,255,0.3)'
-                  : '1px solid rgba(0,229,255,0.1)',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              fontFamily: 'Outfit, sans-serif',
-            }}
-          >
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: TEXT,
-              }}
-            >
-              {o.name}
-            </span>
-
-            <span
-              style={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: 10,
-                color: DIMMER,
-              }}
-            >
-              {o.system}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* ERROR */}
-      {error && (
-        <div
-          style={{
-            background: 'rgba(255,82,82,0.06)',
-            border: '1px solid rgba(255,82,82,0.2)',
-            borderRadius: 12,
-            padding: '16px 20px',
-            color: '#ff8a80',
-            fontSize: 14,
-            marginBottom: 28,
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {/* LOADING */}
-      {loading && (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '4rem 0',
-            color: DIM,
-          }}
-        >
-          Loading medical article...
-        </div>
-      )}
-
-      {/* RESULT */}
-      {!loading && result && (
-        <>
-          <div
-            className="fade-in"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 320px',
-              gap: 28,
-            }}
-          >
-            {/* LEFT */}
-            <div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 16,
-                  marginBottom: 22,
-                }}
-              >
-                <h2
-                  style={{
-                    fontFamily: 'Outfit, sans-serif',
-                    fontSize: '2rem',
-                    fontWeight: 800,
-                    color: TEXT,
-                  }}
-                >
-                  {result.title}
-                </h2>
-
-                {result.content_urls && (
-                  <a
-                    href={result.content_urls.desktop.page}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tag-cyan"
-                    style={{
-                      textDecoration: 'none',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Wikipedia ↗
-                  </a>
-                )}
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                }}
-              >
-                {result.extract
-                  .split('\n')
-                  .filter(Boolean)
-                  .map((p, i) => (
-                    <p
-                      key={i}
-                      style={{
-                        fontSize: i === 0 ? 15.5 : 14,
-                        lineHeight: 1.8,
-                        color: i === 0 ? TEXT : DIM,
-                        fontFamily: 'Outfit, sans-serif',
-                      }}
-                    >
-                      {p}
-                    </p>
-                  ))}
-              </div>
-            </div>
-
-            {/* RIGHT */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 14,
-              }}
-            >
-              {result.thumbnail && (
-                <div
-                  className="glass"
-                  style={{
-                    borderRadius: 14,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <img
-                    src={result.thumbnail.source}
-                    alt={result.title}
-                    style={{
-                      width: '100%',
-                      display: 'block',
-                    }}
-                  />
+              {/* Loading */}
+              {loading && (
+                <div>
+                  <div className="glass" style={{ borderRadius: '4px 14px 14px 14px', padding: '16px 20px', display: 'inline-flex', gap: 5 }}>
+                    {[0,1,2].map(i => <div key={i} className="typing-dot" style={{ animationDelay: `${i*0.2}s` }} />)}
+                  </div>
                 </div>
               )}
+            </div>
+          )}
 
-              <div
-                className="glass"
-                style={{
-                  borderRadius: 12,
-                  padding: '18px 20px',
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: 11,
-                    color: ACCENT,
-                    marginBottom: 14,
-                  }}
-                >
-                  Article Stats
-                </p>
-
-                {[
-                  ['Source', 'Wikipedia'],
-                  ['Language', 'English'],
-                  ['Words', result.extract.split(' ').length.toString()],
-                  [
-                    'Paragraphs',
-                    result.extract
-                      .split('\n')
-                      .filter(Boolean)
-                      .length.toString(),
-                  ],
-                ].map(([k, v]) => (
-                  <div
-                    key={k}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '6px 0',
-                    }}
+          {/* Empty state */}
+          {messages.length === 0 && !loading && (
+            <div className="glass" style={{ borderRadius: 14, padding: '40px 28px', textAlign: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(0,229,255,0.06)',
+                border: '1px solid rgba(0,229,255,0.15)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto 20px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,255,0.5)" strokeWidth="1.5">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: 700, color: TEXT, marginBottom: 10 }}>
+                Ask the Medical AI
+              </h3>
+              <p style={{ color: DIMMER, fontSize: 14, lineHeight: 1.7, maxWidth: 400, margin: '0 auto 28px' }}>
+                Ask any medical question — anatomy, diseases, radiology, pathology, physiology, or treatments.
+                Click a preset on the right or type your own question below.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {SUGGESTED_QUERIES.slice(0, 4).map(q => (
+                  <button key={q} onClick={() => ask(q)}
+                    style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(0,229,255,0.03)',
+                      border: '1px solid rgba(0,229,255,0.1)', color: DIM, fontSize: 13,
+                      cursor: 'pointer', textAlign: 'left' as const, transition: 'all 0.15s', fontFamily: 'Outfit, sans-serif' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = TEXT; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,229,255,0.3)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = DIM; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,229,255,0.1)'; }}
                   >
-                    <span style={{ color: DIM }}>{k}</span>
-                    <span style={{ color: TEXT }}>{v}</span>
-                  </div>
+                    {q}
+                  </button>
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div style={{ background: 'rgba(255,82,82,0.06)', border: '1px solid rgba(255,82,82,0.2)',
+              borderRadius: 12, padding: '14px 18px', color: '#ff8a80', fontSize: 14 }}>
+              {error}
+            </div>
+          )}
+
+          {/* Input */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <input className="input-med" style={{ flex: 1, height: 52, fontSize: 15 }}
+              placeholder="Ask about anatomy, diseases, imaging, pathology..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && ask(query)}
+              disabled={loading}
+            />
+            <button onClick={() => ask(query)} disabled={!query.trim() || loading} className="btn-cyan"
+              style={{ height: 52, padding: '0 24px', fontSize: 14, opacity: (!query.trim() || loading) ? 0.4 : 1 }}>
+              Ask
+            </button>
+            {messages.length > 0 && (
+              <button onClick={() => setMessages([])} className="btn-outline"
+                style={{ height: 52, padding: '0 16px', fontSize: 13 }}>
+                Clear
+              </button>
+            )}
           </div>
+        </div>
 
-          {/* RELATED TOPICS */}
-          <div
-            className="glass"
-            style={{
-              marginTop: 32,
-              borderRadius: 16,
-              padding: '22px',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: 11,
-                color: ACCENT,
-                marginBottom: 18,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Explore Related Topics
-            </p>
+        {/* RIGHT — presets */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {PRESET_CATEGORIES.map(cat => (
+            <div key={cat.label} className="glass" style={{ borderRadius: 12, padding: '16px 18px' }}>
+              <div className="mono-label" style={{ marginBottom: 12 }}>{cat.label}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {cat.items.map(item => (
+                  <button key={item} onClick={() => handlePreset(item)}
+                    onMouseEnter={() => setHovered(item)} onMouseLeave={() => setHovered(null)}
+                    style={{ padding: '9px 12px', borderRadius: 8, textAlign: 'left' as const,
+                      background: hovered === item ? 'rgba(0,229,255,0.05)' : 'rgba(0,8,20,0.5)',
+                      border: `1px solid ${hovered === item ? 'rgba(0,229,255,0.25)' : 'rgba(0,229,255,0.08)'}`,
+                      color: hovered === item ? TEXT : DIM,
+                      fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
+                      fontFamily: 'Outfit, sans-serif', fontWeight: hovered === item ? 500 : 400 }}>
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
 
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 12,
-              }}
-            >
-              {[
-                `${result.title} anatomy`,
-                `${result.title} disease`,
-                `${result.title} treatment`,
-                `${result.title} symptoms`,
-                `${result.title} physiology`,
-                `${result.title} pathology`,
-                `${result.title} diagnosis`,
-                `${result.title} surgery`,
-              ].map((topic) => (
-                <button
-                  key={topic}
-                  onClick={() => {
-                    setQuery(topic);
-                    fetchPage(topic);
-                  }}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: 10,
-                    background: 'rgba(0,229,255,0.04)',
-                    border: '1px solid rgba(0,229,255,0.12)',
-                    color: TEXT,
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    fontFamily: 'Outfit, sans-serif',
-                  }}
-                >
-                  {topic}
+          {/* More queries */}
+          <div className="glass" style={{ borderRadius: 12, padding: '16px 18px' }}>
+            <div className="mono-label" style={{ marginBottom: 12 }}>More Queries</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {SUGGESTED_QUERIES.slice(4).map(q => (
+                <button key={q} onClick={() => ask(q)}
+                  onMouseEnter={() => setHovered(q)} onMouseLeave={() => setHovered(null)}
+                  style={{ padding: '9px 12px', borderRadius: 8, textAlign: 'left' as const,
+                    background: hovered === q ? 'rgba(0,229,255,0.05)' : 'rgba(0,8,20,0.5)',
+                    border: `1px solid ${hovered === q ? 'rgba(0,229,255,0.25)' : 'rgba(0,229,255,0.08)'}`,
+                    color: hovered === q ? TEXT : DIM,
+                    fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',
+                    fontFamily: 'Outfit, sans-serif', lineHeight: 1.5 }}>
+                  {q}
                 </button>
               ))}
             </div>
           </div>
-        </>
-      )}
-
-      {/* EMPTY */}
-      {!loading && result === null && !error && (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '6rem 0',
-          }}
-        >
-          <h3
-            style={{
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              color: TEXT,
-              marginBottom: 10,
-            }}
-          >
-            Search Medical Topics
-          </h3>
-
-          <p
-            style={{
-              color: DIMMER,
-              fontSize: 14,
-            }}
-          >
-            Search anatomy, diseases, physiology, treatments, pathology,
-            organs, symptoms, and medical conditions.
-          </p>
         </div>
-      )}
+      </div>
     </div>
   );
 };

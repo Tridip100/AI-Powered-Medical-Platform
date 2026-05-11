@@ -55,7 +55,23 @@ const DiseaseDetection: React.FC = () => {
   const [gcLoading, setGcLoading] = useState(false);
   const [error, setError]         = useState('');
 
-  const handleFile = useCallback((f: File) => { setFile(f); setResult(null); setGradcam(null); setError(''); }, []);
+  // Switching scan modality resets ALL state including ImageUploader.
+  // key={active.id} on <ImageUploader> causes React to fully remount it,
+  // clearing its internal preview/fileName/fileSize state automatically.
+  const handleScanSwitch = (scan: typeof SCANS[0]) => {
+    setActive(scan);
+    setFile(null);
+    setResult(null);
+    setGradcam(null);
+    setError('');
+  };
+
+  const handleFile = useCallback((f: File) => {
+    setFile(f);
+    setResult(null);
+    setGradcam(null);
+    setError('');
+  }, []);
 
   const handleAnalyze = async () => {
     if (!file) return;
@@ -78,7 +94,6 @@ const DiseaseDetection: React.FC = () => {
 
       {/* ── HEADER ── */}
       <div className="fade-in" style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '2.4rem' }}>
-        {/* Scan image badge */}
         <div style={{
           width: 90, height: 90, borderRadius: 16, overflow: 'hidden', flexShrink: 0,
           border: `1px solid ${active.color}55`,
@@ -124,7 +139,7 @@ const DiseaseDetection: React.FC = () => {
               const isActive = active.id === s.id;
               return (
                 <button key={s.id}
-                  onClick={() => { setActive(s); setFile(null); setResult(null); setGradcam(null); }}
+                  onClick={() => handleScanSwitch(s)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14,
                     padding: '14px 16px', borderRadius: 11,
@@ -134,7 +149,6 @@ const DiseaseDetection: React.FC = () => {
                     fontFamily: 'Outfit, sans-serif',
                   }}
                 >
-                  {/* Thumbnail */}
                   <div style={{
                     width: 44, height: 44, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
                     border: `1px solid ${isActive ? s.color + '50' : 'rgba(255,255,255,0.07)'}`,
@@ -146,11 +160,9 @@ const DiseaseDetection: React.FC = () => {
 
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: isActive ? TEXT : DIM, marginBottom: 3 }}>{s.label}</p>
-                    {/* arch label — was DIMMER grey, now coloured */}
                     <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: isActive ? s.color : 'rgba(0,200,255,0.45)' }}>{s.arch}</p>
                   </div>
 
-                  {/* Active indicator bar */}
                   <div style={{ width: 3, height: 32, borderRadius: 2, background: isActive ? s.color : 'transparent', flexShrink: 0, boxShadow: isActive ? `0 0 8px ${s.color}` : 'none', transition: 'all 0.2s' }} />
                 </button>
               );
@@ -161,7 +173,6 @@ const DiseaseDetection: React.FC = () => {
         {/* ── UPLOAD + RESULTS ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-          {/* Output classes */}
           <div className="glass" style={{ borderRadius: 14, padding: '20px 24px' }}>
             <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: ACCENT, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 14 }}>
               Model Output Classes
@@ -178,7 +189,13 @@ const DiseaseDetection: React.FC = () => {
             </div>
           </div>
 
-          <ImageUploader onFile={handleFile} label={`Upload ${active.label}`} />
+          {/* KEY FIX 1: key={active.id} remounts ImageUploader on every scan switch,
+              wiping its internal preview/fileName/fileSize state automatically.   */}
+          <ImageUploader
+            key={active.id}
+            onFile={handleFile}
+            label={`Upload ${active.label}`}
+          />
 
           <button onClick={handleAnalyze} disabled={!file || loading}
             style={{
@@ -203,7 +220,6 @@ const DiseaseDetection: React.FC = () => {
             <div className="glass fade-in" style={{ borderRadius: 14, padding: '26px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid rgba(0,229,255,0.09)' }}>
                 <div>
-                  {/* section label — cyan */}
                   <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: ACCENT, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 8 }}>
                     Primary Diagnosis
                   </div>
@@ -228,7 +244,6 @@ const DiseaseDetection: React.FC = () => {
                 <ConfidenceBar key={cls} label={cls} score={score} isTop={i === 0} color={i === 0 ? active.color : undefined} />
               ))}
 
-              {/* disclaimer — was DIMMER grey, now soft blue */}
               <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'rgba(0,200,255,0.4)', marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(0,229,255,0.07)' }}>
                 DISCLAIMER: For educational and research purposes only. Not intended for clinical use.
               </p>
@@ -248,7 +263,6 @@ const DiseaseDetection: React.FC = () => {
                 <div style={{ marginBottom: 18, opacity: 0.5 }}>
                   <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                 </div>
-                {/* was DIM grey — now visible */}
                 <p style={{ color: DIM, fontSize: 14, marginBottom: 16 }}>Computing activation maps…</p>
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                   {[0,1,2].map(i => <div key={i} className="typing-dot" style={{ animationDelay: `${i*0.2}s` }} />)}
@@ -259,7 +273,6 @@ const DiseaseDetection: React.FC = () => {
               <div style={{ width: '100%' }}>
                 <img src={`data:image/png;base64,${gradcam}`} alt="Grad-CAM Heatmap"
                   style={{ width: '100%', borderRadius: 10, border: '1px solid rgba(0,229,255,0.18)' }} />
-                {/* was DIMMER grey — now cyan-tinted */}
                 <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(0,200,255,0.55)', textAlign: 'center', marginTop: 12 }}>
                   Gradient-weighted Class Activation Map
                 </p>
@@ -270,7 +283,6 @@ const DiseaseDetection: React.FC = () => {
                 <div style={{ marginBottom: 16, opacity: 0.2 }}>
                   <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="3" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="21" y2="12"/></svg>
                 </div>
-                {/* was DIMMER grey — now readable */}
                 <p style={{ color: 'rgba(0,200,255,0.5)', fontSize: 14 }}>Activation map will render after analysis</p>
               </div>
             )}
@@ -283,7 +295,6 @@ const DiseaseDetection: React.FC = () => {
               </div>
               {[['Architecture', active.arch], ['Modality', active.label], ['Output Classes', active.classes.length.toString()], ['Method', 'Grad-CAM']].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, padding: '8px 0', borderBottom: '1px solid rgba(0,229,255,0.05)' }}>
-                  {/* key label — was grey, now cyan-tinted */}
                   <span style={{ color: 'rgba(0,200,255,0.6)', fontFamily: 'Outfit, sans-serif' }}>{k}</span>
                   <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: TEXT }}>{v}</span>
                 </div>
